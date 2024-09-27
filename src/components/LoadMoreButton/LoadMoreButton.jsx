@@ -1,6 +1,6 @@
 import css from './LoadMoreBtn.module.css';
 
-function LoadeMoreButton({ onClick }) {
+function LoadMoreButton({ onClick }) {
   return (
     <button className={css['load-more-button']} onClick={onClick}>
       Load more
@@ -8,4 +8,4 @@ function LoadeMoreButton({ onClick }) {
   );
 }
 
-export default LoadeMoreButton;
+export default LoadMoreButton;

@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { fetchGallery } from './api/api-gallery';
 import SearchBar from './components/SearchBar/SearchBar';
 import ImageGallery from './components/ImageGallery/ImageGallery';
 import Loader from './components/Loader/Loader';
-import LoadeMoreButton from './components/LoadMoreButton/LoadMoreButton';
+import LoadMoreButton from './components/LoadMoreButton/LoadMoreButton';
 import ErrorMessage from './components/ErrorMessage/ErrorMessage';
 import ImageModal from './components/ImageModal/ImageModal';
 
@@ -17,26 +17,37 @@ function App() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [isOpenModal, setIsOpenModal] = useState(false);
 
-  const handleSearch = async query => {
-    setImages([]);
-    setPage(1);
-    setError(null);
-    setIsLoading(true);
+  // Виконання запиту при зміні сторінки або запиту
+  useEffect(() => {
+    if (!query) return;
 
-    try {
-      const data = await fetchGallery(query, 1);
-      setQuery(query);
-      setImages(data.results);
-      setTotalPages(data.total_pages);
-    } catch (error) {
-      setError(error);
-      setPage(1);
-      setQuery('');
-      setImages([]);
-      setTotalPages(null);
-    } finally {
-      setIsLoading(false);
-    }
+    const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const data = await fetchGallery(query, page);
+        if (page === 1) {
+          setImages(data.results);
+        } else {
+          setImages(prevState => [...prevState, ...data.results]);
+        }
+        setTotalPages(data.total_pages);
+      } catch (error) {
+        setError(error);
+        setImages([]);
+        setTotalPages(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [query, page]);
+
+  const handleSearch = newQuery => {
+    setQuery(newQuery);
+    setPage(1);  // Повертаємося на першу сторінку при новому пошуку
   };
 
   const handleOpenModal = selectedImage => {
@@ -44,26 +55,8 @@ function App() {
     setSelectedImage(selectedImage);
   };
 
-  const handleLoadMore = async () => {
-    setIsLoading(true);
-    const nextPage = page + 1;
-
-    try {
-      const data = await fetchGallery(query, nextPage);
-      if (data.results.length === 0) {
-        return;
-      }
-      setImages(prevState => [...prevState, ...data.results]);
-      setPage(nextPage);
-    } catch (error) {
-      setError(error);
-      setPage(1);
-      setQuery('');
-      setImages([]);
-      setTotalPages(null);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleLoadMore = () => {
+    setPage(prevPage => prevPage + 1);  // Оновлюємо лише стан сторінки
   };
 
   return (
@@ -73,7 +66,7 @@ function App() {
       {error && <ErrorMessage />}
       {isLoading && <Loader />}
       {!isLoading && page < totalPages && totalPages !== null && !error && (
-        <LoadeMoreButton onClick={handleLoadMore} />
+        <LoadMoreButton onClick={handleLoadMore} />
       )}
       <ImageModal
         image={selectedImage}
